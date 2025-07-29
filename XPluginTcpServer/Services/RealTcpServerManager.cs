@@ -95,7 +95,7 @@ namespace XPluginTcpServer.Services
                     _configManager.UpdateServerStatus(serverId, true, 0);
 
                     Log.Info($"TCP服务器启动成功: {config.Name} ({config.IpAddress}:{config.Port})");
-                    
+
                     // 触发状态变化事件
                     ServerStatusChanged?.Invoke(serverId, true);
 
@@ -103,7 +103,30 @@ namespace XPluginTcpServer.Services
                 }
                 catch (SocketException ex)
                 {
-                    Log.Error($"TCP服务器启动失败 - 端口可能被占用: {ex.Message}");
+                    Log.Error($"TCP服务器启动失败 - 端口 {config.Port} 可能被占用或地址无效: {ex.Message}");
+                    Log.Error($"错误详情: ErrorCode={ex.ErrorCode}, SocketErrorCode={ex.SocketErrorCode}");
+
+                    // 清理资源
+                    try
+                    {
+                        listener.Stop();
+                    }
+                    catch { }
+
+                    cancellationTokenSource.Dispose();
+                    return false;
+                }
+                catch (Exception ex)
+                {
+                    Log.Error($"TCP服务器启动失败: {ex.Message}");
+
+                    // 清理资源
+                    try
+                    {
+                        listener.Stop();
+                    }
+                    catch { }
+
                     cancellationTokenSource.Dispose();
                     return false;
                 }

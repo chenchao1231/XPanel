@@ -43,7 +43,7 @@ namespace XPlugin.Theme
         }
 
         /// <summary>
-        /// 应用主题到控件 - 简化版本
+        /// 应用主题到控件
         /// </summary>
         public static void ApplyTheme(Control control)
         {
@@ -51,9 +51,7 @@ namespace XPlugin.Theme
 
             try
             {
-                // 应用背景色和前景色
-                control.BackColor = _currentTheme.BackgroundColor;
-                control.ForeColor = _currentTheme.ForegroundColor;
+                ApplyThemeToControl(control);
 
                 // 递归应用到子控件
                 foreach (Control child in control.Controls)
@@ -65,6 +63,136 @@ namespace XPlugin.Theme
             {
                 // 忽略主题应用错误
                 System.Diagnostics.Debug.WriteLine($"应用主题失败: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 应用主题到特定控件
+        /// </summary>
+        private static void ApplyThemeToControl(Control control)
+        {
+            try
+            {
+                switch (control)
+                {
+                    case Form form:
+                        form.BackColor = _currentTheme.BackgroundColor;
+                        form.ForeColor = _currentTheme.ForegroundColor;
+                        break;
+
+                    case Panel panel:
+                        panel.BackColor = _currentTheme.BackgroundColor;
+                        panel.ForeColor = _currentTheme.ForegroundColor;
+                        break;
+
+                    case GroupBox groupBox:
+                        groupBox.BackColor = _currentTheme.BackgroundColor;
+                        groupBox.ForeColor = _currentTheme.ForegroundColor;
+                        break;
+
+                    case ListView listView:
+                        listView.BackColor = _currentTheme.ListBackgroundColor;
+                        listView.ForeColor = _currentTheme.ForegroundColor;
+                        break;
+
+                    case TextBox textBox:
+                        if (textBox.ReadOnly)
+                        {
+                            // 日志文本框保持特殊样式
+                            if (textBox.BackColor == Color.Black || textBox.Font.Name == "Consolas")
+                            {
+                                textBox.BackColor = _currentTheme.LogBackgroundColor;
+                                textBox.ForeColor = _currentTheme.LogForegroundColor;
+                            }
+                            else
+                            {
+                                textBox.BackColor = _currentTheme.ListBackgroundColor;
+                                textBox.ForeColor = _currentTheme.ForegroundColor;
+                            }
+                        }
+                        else
+                        {
+                            textBox.BackColor = _currentTheme.InputBackgroundColor;
+                            textBox.ForeColor = _currentTheme.ForegroundColor;
+                        }
+                        break;
+
+                    case Button button:
+                        // 保持按钮的功能颜色，但调整基础色调
+                        if (button.UseVisualStyleBackColor)
+                        {
+                            button.BackColor = _currentTheme.BackgroundColor;
+                        }
+                        else
+                        {
+                            // 保持按钮的特殊颜色，只调整亮度
+                            button.BackColor = AdjustButtonColor(button.BackColor);
+                        }
+                        button.ForeColor = _currentTheme.ForegroundColor;
+                        break;
+
+                    case Label label:
+                        // 保持特殊标签的颜色（如标题、状态标签）
+                        if (label.ForeColor != Color.DarkBlue &&
+                            label.ForeColor != Color.DarkGreen &&
+                            label.ForeColor != Color.Red &&
+                            label.Font.Style != FontStyle.Bold)
+                        {
+                            label.ForeColor = _currentTheme.ForegroundColor;
+                        }
+                        // 标签背景通常透明，不需要设置
+                        break;
+
+                    case ComboBox comboBox:
+                        comboBox.BackColor = _currentTheme.InputBackgroundColor;
+                        comboBox.ForeColor = _currentTheme.ForegroundColor;
+                        break;
+
+                    case NumericUpDown numericUpDown:
+                        numericUpDown.BackColor = _currentTheme.InputBackgroundColor;
+                        numericUpDown.ForeColor = _currentTheme.ForegroundColor;
+                        break;
+
+                    case CheckBox checkBox:
+                        checkBox.BackColor = _currentTheme.BackgroundColor;
+                        checkBox.ForeColor = _currentTheme.ForegroundColor;
+                        break;
+
+                    default:
+                        // 对于其他控件，应用基本主题
+                        if (control.BackColor != Color.Transparent)
+                        {
+                            control.BackColor = _currentTheme.BackgroundColor;
+                        }
+                        control.ForeColor = _currentTheme.ForegroundColor;
+                        break;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"应用控件主题失败: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 调整按钮颜色以适应主题
+        /// </summary>
+        private static Color AdjustButtonColor(Color originalColor)
+        {
+            // 根据当前主题调整按钮颜色的亮度
+            var brightness = _currentTheme.BackgroundColor.GetBrightness();
+
+            if (brightness < 0.5) // 深色主题
+            {
+                return Color.FromArgb(
+                    Math.Min(255, originalColor.R + 40),
+                    Math.Min(255, originalColor.G + 40),
+                    Math.Min(255, originalColor.B + 40)
+                );
+            }
+            else // 浅色主题
+            {
+                return originalColor;
             }
         }
 

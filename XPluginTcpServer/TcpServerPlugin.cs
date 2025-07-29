@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using XPlugin;
+using XPlugin.Theme;
 using XPluginTcpServer.Services;
 using XPlugin.logs;
 
@@ -75,6 +76,12 @@ namespace XPluginTcpServer
 
             // 启动自动启动的服务器
             _ = Task.Run(async () => await _serverManager.StartAutoStartServersAsync());
+
+            // 应用当前主题
+            ThemeManager.ApplyTheme(this);
+
+            // 监听主题变化
+            ThemeManager.ThemeChanged += OnThemeChanged;
         }
 
         private void InitializeComponent()
@@ -128,6 +135,9 @@ namespace XPluginTcpServer
             _serverListView.Columns.Add("端口", 60);
             _serverListView.Columns.Add("状态", 80);
             _serverListView.Columns.Add("连接数", 80);
+
+            // 添加选择变化事件
+            _serverListView.SelectedIndexChanged += ServerListView_SelectedIndexChanged;
 
             // 按钮面板
             var buttonPanel = new Panel
@@ -287,8 +297,8 @@ namespace XPluginTcpServer
             // 添加到主面板
             Controls.AddRange(new Control[] { titleLabel, leftPanel, rightPanel });
 
-            // 定时器
-            _refreshTimer = new Timer { Interval = 2000, Enabled = true };
+            // 定时器 - 降低刷新频率，避免频繁重置选中状态
+            _refreshTimer = new Timer { Interval = 5000, Enabled = true };
             _refreshTimer.Tick += RefreshTimer_Tick;
         }
 
@@ -296,9 +306,17 @@ namespace XPluginTcpServer
         {
             try
             {
+                // 保存当前选中的服务器ID
+                string? selectedServerId = null;
+                if (_serverListView.SelectedItems.Count > 0)
+                {
+                    selectedServerId = _serverListView.SelectedItems[0].Tag?.ToString();
+                }
+
                 _serverListView.Items.Clear();
                 var configs = _configManager.GetAllConfigs();
 
+                ListViewItem? itemToSelect = null;
                 foreach (var config in configs)
                 {
                     var item = new ListViewItem(config.Name);
@@ -315,11 +333,24 @@ namespace XPluginTcpServer
                     }
                     else
                     {
-                        item.BackColor = Color.LightGray;
-                        item.ForeColor = Color.Black;
+                        item.BackColor = ThemeManager.CurrentTheme.ListBackgroundColor;
+                        item.ForeColor = ThemeManager.CurrentTheme.ForegroundColor;
                     }
 
                     _serverListView.Items.Add(item);
+
+                    // 如果这是之前选中的项，记录下来
+                    if (config.Id == selectedServerId)
+                    {
+                        itemToSelect = item;
+                    }
+                }
+
+                // 恢复选中状态
+                if (itemToSelect != null)
+                {
+                    itemToSelect.Selected = true;
+                    itemToSelect.Focused = true;
                 }
             }
             catch (Exception ex)
@@ -359,8 +390,8 @@ namespace XPluginTcpServer
                             }
                             else
                             {
-                                item.BackColor = Color.LightGray;
-                                item.ForeColor = Color.Black;
+                                item.BackColor = ThemeManager.CurrentTheme.ListBackgroundColor;
+                                item.ForeColor = ThemeManager.CurrentTheme.ForegroundColor;
                             }
 
                             clientListView.Items.Add(item);
@@ -383,6 +414,29 @@ namespace XPluginTcpServer
         {
             LoadServerList();
             LoadClientList();
+        }
+
+        private void ServerListView_SelectedIndexChanged(object? sender, EventArgs e)
+        {
+            LoadClientList();
+        }
+
+        private void OnThemeChanged(ThemeConfig theme)
+        {
+            try
+            {
+                if (InvokeRequired)
+                {
+                    Invoke(new Action<ThemeConfig>(OnThemeChanged), theme);
+                    return;
+                }
+
+                ThemeManager.ApplyTheme(this);
+            }
+            catch (Exception ex)
+            {
+                AppendLog($"应用主题失败: {ex.Message}");
+            }
         }
 
         private void AddButton_Click(object? sender, EventArgs e)
