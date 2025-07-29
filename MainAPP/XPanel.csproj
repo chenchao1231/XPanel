@@ -17,11 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="XPluginInterface\XPluginInterface.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Content Include="XPluginInterface\XPluginInterface.csproj" />
+    <ProjectReference Include="..\XPluginInterface\XPluginInterface.csproj" />
   </ItemGroup>
 
 </Project>
