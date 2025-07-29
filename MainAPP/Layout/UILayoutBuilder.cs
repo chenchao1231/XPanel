@@ -79,6 +79,7 @@
             appMenu.DropDownItems.Add("测试程序2");
 
             configMenu.DropDownItems.Add("系统设置");
+            configMenu.DropDownItems.Add("主题设置");
 
             pluginMenu.DropDownItems.Add("插件管理");
             pluginMenu.DropDownItems.Add(new ToolStripSeparator());

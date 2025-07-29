@@ -1,6 +1,7 @@
 namespace XPanel.Forms
 {
     using XPlugin;
+    using XPlugin.Theme;
     using XPanel.Layout;
     using XPanel.Registry;
     using XPanel.Tabs;
@@ -36,7 +37,53 @@ namespace XPanel.Forms
         public MainForm()
         {
             InitializeComponent();
+            InitializeTheme();
             InitializeLayout();
+        }
+
+        /// <summary>
+        /// 初始化主题系统
+        /// </summary>
+        private void InitializeTheme()
+        {
+            ThemeManager.Initialize();
+            ThemeManager.ThemeChanged += OnThemeChanged;
+            ApplyCurrentTheme();
+        }
+
+        /// <summary>
+        /// 应用当前主题
+        /// </summary>
+        private void ApplyCurrentTheme()
+        {
+            ThemeManager.ApplyTheme(this);
+        }
+
+        /// <summary>
+        /// 主题变化事件处理
+        /// </summary>
+        private void OnThemeChanged(ThemeConfig theme)
+        {
+            ApplyCurrentTheme();
+        }
+
+        /// <summary>
+        /// 打开主题设置对话框
+        /// </summary>
+        private void OpenThemeDialog()
+        {
+            try
+            {
+                using var themeDialog = new ThemeSelectionDialog();
+                if (themeDialog.ShowDialog() == DialogResult.OK)
+                {
+                    ThemeManager.SetTheme(themeDialog.SelectedTheme);
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"打开主题设置失败: {ex.Message}", "错误", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         /// <summary>
@@ -74,7 +121,14 @@ namespace XPanel.Forms
                 {
                     if (subItem is ToolStripMenuItem menuItem)
                     {
-                        menuItem.Click += (s, e) => { OpenPanel(menuItem.Text); };
+                        if (menuItem.Text == "主题设置")
+                        {
+                            menuItem.Click += (s, e) => { OpenThemeDialog(); };
+                        }
+                        else
+                        {
+                            menuItem.Click += (s, e) => { OpenPanel(menuItem.Text); };
+                        }
                     }
                 }
             }
