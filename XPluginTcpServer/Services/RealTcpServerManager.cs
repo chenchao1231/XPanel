@@ -198,7 +198,7 @@ namespace XPluginTcpServer.Services
             catch (ObjectDisposedException)
             {
                 // 服务器已停止，正常情况
-                Log.Info($"TCP服务器监听已停止: {config.Name}");
+                Log.Info($"TCP Server Listener Stopped: {config.Name}");
             }
             catch (Exception ex)
             {
@@ -349,11 +349,16 @@ namespace XPluginTcpServer.Services
                 // 等待接受任务完成
                 try
                 {
-                    await serverInstance.AcceptTask.WaitAsync(TimeSpan.FromSeconds(5));
+                    await serverInstance.AcceptTask.WaitAsync(TimeSpan.FromSeconds(2));
                 }
                 catch (TimeoutException)
                 {
-                    Log.Error("等待接受任务完成超时");
+                    Log.Error("等待接受任务完成超时，强制终止");
+                }
+                catch (OperationCanceledException)
+                {
+                    // 正常的取消操作，不记录错误
+                    Log.Info("接受任务已取消");
                 }
                 catch (Exception ex)
                 {
@@ -363,23 +368,26 @@ namespace XPluginTcpServer.Services
                 // 释放资源
                 serverInstance.CancellationTokenSource.Dispose();
 
-                // 更新所有连接状态为断开
+                // 清理所有连接信息（停止服务器时直接移除所有连接）
                 if (_connections.TryGetValue(serverId, out var connectionList))
                 {
                     lock (connectionList)
                     {
+                        // 通知所有连接断开
                         foreach (var connection in connectionList.Where(c => c.IsConnected))
                         {
                             connection.IsConnected = false;
                             connection.DisconnectedTime = DateTime.Now;
                             ClientConnectionChanged?.Invoke(serverId, connection, false);
                         }
+                        // 清空连接列表
+                        connectionList.Clear();
                     }
                 }
 
                 _configManager.UpdateServerStatus(serverId, false, 0);
 
-                Log.Info($"TCP服务器已停止: {config?.Name ?? serverId}");
+                Log.Info($"TCP Server Stopped: {config?.Name ?? serverId}");
 
                 // 触发状态变化事件
                 ServerStatusChanged?.Invoke(serverId, false);
@@ -426,7 +434,7 @@ namespace XPluginTcpServer.Services
                 // 关闭客户端连接
                 tcpClient.Close();
 
-                // 更新连接信息
+                // 更新连接信息并从列表中移除
                 if (_connections.TryGetValue(serverId, out var connectionList))
                 {
                     lock (connectionList)
@@ -437,15 +445,25 @@ namespace XPluginTcpServer.Services
                             connectionInfo.IsConnected = false;
                             connectionInfo.DisconnectedTime = DateTime.Now;
 
+                            // 从连接列表中移除被踢出的客户端
+                            connectionList.Remove(connectionInfo);
+
+                            // 立即更新服务器连接数
+                            var currentCount = connectionList.Count(c => c.IsConnected);
+                            _configManager.UpdateServerStatus(serverId, _servers.ContainsKey(serverId), currentCount);
+
                             Log.Info($"已踢出客户端: {connectionInfo.ClientIp}:{connectionInfo.ClientPort} (ID: {connectionId})");
                             ClientConnectionChanged?.Invoke(serverId, connectionInfo, false);
                         }
                     }
                 }
 
-                // 更新连接数
-                var currentCount = GetCurrentConnectionCount(serverId);
-                _configManager.UpdateServerStatus(serverId, true, currentCount);
+                // 更新连接数（如果服务器仍在运行）
+                if (_servers.ContainsKey(serverId))
+                {
+                    var finalCount = GetCurrentConnectionCount(serverId);
+                    _configManager.UpdateServerStatus(serverId, true, finalCount);
+                }
 
                 return true;
             }
@@ -516,7 +534,7 @@ namespace XPluginTcpServer.Services
             var runningServers = _servers.Keys.ToList();
             var stopTasks = runningServers.Select(serverId => StopServerAsync(serverId));
             await Task.WhenAll(stopTasks);
-            Log.Info("所有TCP服务器已停止");
+            Log.Info("All TCP Servers Stopped");
         }
 
         /// <summary>
