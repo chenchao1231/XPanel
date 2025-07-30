@@ -92,7 +92,36 @@ namespace XPanel.Tabs
                 if (closeRect.Contains(e.Location))
                 {
                     var tab = tabControl.TabPages[i];
+
+                    // 在移除TabPage之前，先正确释放其中的UserControl
+                    try
+                    {
+                        if (tab.Controls.Count > 0)
+                        {
+                            var userControl = tab.Controls[0] as UserControl;
+                            if (userControl != null)
+                            {
+                                // 先从TabPage中移除控件
+                                tab.Controls.Remove(userControl);
+
+                                // 调用控件的Dispose方法释放资源
+                                userControl.Dispose();
+
+                                System.Diagnostics.Debug.WriteLine($"已释放TabPage中的UserControl: {tab.Text}");
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"释放TabPage控件时发生错误: {ex.Message}");
+                    }
+
+                    // 移除TabPage
                     tabControl.TabPages.Remove(tab);
+
+                    // 释放TabPage本身
+                    tab.Dispose();
+
                     statusLabel.Text = $"已关闭：{tab.Text}";
                     return;
                 }

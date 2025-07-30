@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Drawing;
 using System.Linq;
 using System.Threading.Tasks;
@@ -64,12 +65,37 @@ namespace XPluginTcpServer
         {
             try
             {
-                _currentPanel?.Dispose();
-                _currentPanel = null;
+                if (_currentPanel != null)
+                {
+                    System.Diagnostics.Debug.WriteLine("开始清理TCP插件静态资源...");
+                    _currentPanel.Dispose();
+                    _currentPanel = null;
+                    System.Diagnostics.Debug.WriteLine("TCP插件静态资源清理完成");
+                }
             }
             catch (Exception ex)
             {
                 System.Diagnostics.Debug.WriteLine($"清理TCP插件资源失败: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 当面板被外部释放时调用此方法清理静态引用
+        /// </summary>
+        internal static void OnPanelDisposed(SimpleTcpPanel panel)
+        {
+            try
+            {
+                if (_currentPanel == panel)
+                {
+                    System.Diagnostics.Debug.WriteLine("TCP面板被外部释放，清理静态引用");
+                    
+                    _currentPanel = null;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"清理TCP面板静态引用失败: {ex.Message}");
             }
         }
     }
@@ -1396,25 +1422,9 @@ namespace XPluginTcpServer
         {
             try
             {
-                System.Diagnostics.Debug.WriteLine("TCP服务器管理面板Handle被销毁，开始清理资源...");
-
-                // 先停止定时器
-                _refreshTimer?.Stop();
-                _refreshTimer?.Dispose();
-
-                // 异步停止所有服务器
-                _ = Task.Run(async () =>
-                {
-                    try
-                    {
-                        await _serverManager.StopAllServersAsync();
-                        System.Diagnostics.Debug.WriteLine("所有TCP服务器已停止");
-                    }
-                    catch (Exception ex)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"停止服务器时发生错误: {ex.Message}");
-                    }
-                });
+                System.Diagnostics.Debug.WriteLine("TCP服务器管理面板Handle被销毁事件触发");
+                // HandleDestroyed事件通常在Dispose之后触发，此时资源应该已经被清理
+                // 这里只做日志记录，实际清理工作在Dispose方法中完成
             }
             catch (Exception ex)
             {
@@ -1422,6 +1432,7 @@ namespace XPluginTcpServer
             }
         }
 
+        
         protected override void Dispose(bool disposing)
         {
             if (disposing)
@@ -1430,12 +1441,20 @@ namespace XPluginTcpServer
                 {
                     System.Diagnostics.Debug.WriteLine("TCP服务器管理面板Dispose被调用");
 
+                    // 先停止定时器
+                    _refreshTimer?.Stop();
+                    _refreshTimer?.Dispose();
+
+                    // 直接调用TCP服务器停止逻辑（不依赖事件）
+                    StopAllTcpServersSync();
+
+                    // 通知插件类清理静态引用
+                    TcpServerPlugin.OnPanelDisposed(this);
+
                     // 取消事件注册
                     this.HandleDestroyed -= SimpleTcpPanel_HandleDestroyed;
 
-                    // 停止定时器
-                    _refreshTimer?.Stop();
-                    _refreshTimer?.Dispose();
+                    System.Diagnostics.Debug.WriteLine("TCP服务器管理面板Dispose完成");
                 }
                 catch (Exception ex)
                 {
@@ -1443,6 +1462,32 @@ namespace XPluginTcpServer
                 }
             }
             base.Dispose(disposing);
+        }
+
+        /// <summary>
+        /// 同步停止所有TCP服务器（用于Dispose时调用）
+        /// </summary>
+        private void StopAllTcpServersSync()
+        {
+            try
+            {
+                System.Diagnostics.Debug.WriteLine("开始同步停止所有TCP服务器...");
+
+                // 使用同步方式停止所有服务器，但设置较短的超时时间
+                var stopTask = _serverManager.StopAllServersAsync();
+                if (stopTask.Wait(TimeSpan.FromSeconds(3)))
+                {
+                    System.Diagnostics.Debug.WriteLine("所有TCP服务器已成功停止");
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine("停止TCP服务器超时，但继续释放资源");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"同步停止TCP服务器失败: {ex.Message}");
+            }
         }
     }
 }
