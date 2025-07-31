@@ -102,7 +102,7 @@ namespace XPluginTcpRelay.Services
             }
 
             // 检查是否已存在相同的规则
-            if (_config.RouteRules.Any(r => r.AEndpoint == rule.AEndpoint))
+            if (_config.RouteRules.Any(r => r.DataSourceEndpoint == rule.DataSourceEndpoint))
             {
                 return false; // 已存在相同的A方端点
             }
@@ -129,10 +129,10 @@ namespace XPluginTcpRelay.Services
 
             // 更新规则
             existingRule.Name = rule.Name;
-            existingRule.ASourceIp = rule.ASourceIp;
-            existingRule.ASourcePort = rule.ASourcePort;
-            existingRule.CTargetIp = rule.CTargetIp;
-            existingRule.CTargetPort = rule.CTargetPort;
+            existingRule.DataSourceIp = rule.DataSourceIp;
+            existingRule.DataSourcePort = rule.DataSourcePort;
+            existingRule.DataType = rule.DataType;
+            existingRule.LocalServerPort = rule.LocalServerPort;
             existingRule.IsEnabled = rule.IsEnabled;
             existingRule.Description = rule.Description;
             existingRule.LastModified = DateTime.Now;
@@ -166,10 +166,10 @@ namespace XPluginTcpRelay.Services
         /// <summary>
         /// 根据A方端点查找路由规则
         /// </summary>
-        public RouteRule? FindRouteRuleByAEndpoint(string ip, int port)
+        public RouteRule? FindRouteRuleByDataSource(string ip, int port)
         {
-            return _config.RouteRules.FirstOrDefault(r => 
-                r.IsEnabled && r.ASourceIp == ip && r.ASourcePort == port);
+            return _config.RouteRules.FirstOrDefault(r =>
+                r.IsEnabled && r.DataSourceIp == ip && r.DataSourcePort == port);
         }
 
         /// <summary>
@@ -183,11 +183,11 @@ namespace XPluginTcpRelay.Services
             config.RouteRules.Add(new RouteRule
             {
                 Name = "示例路由规则",
-                ASourceIp = "192.168.1.100",
-                ASourcePort = 8080,
-                CTargetIp = "10.0.0.50",
-                CTargetPort = 8080,
-                Description = "这是一个示例路由规则，A方192.168.1.100:8080的数据转发到C方10.0.0.50:8080"
+                DataSourceIp = "192.168.1.100",
+                DataSourcePort = 8080,
+                LocalServerPort = 9999,
+                DataType = "realtime",
+                Description = "示例TCP数据中转规则：连接数据源192.168.1.100:8080，本地服务端口9999"
             });
 
             return config;

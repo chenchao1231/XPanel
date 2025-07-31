@@ -13,6 +13,11 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XPluginTcpServer", "XPlugin
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "XPluginTcpRelay", "XPluginTcpRelay\XPluginTcpRelay.csproj", "{F7D13F09-C3A5-43F0-85EB-CDEE7D1BC802}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "项目文档", "项目文档", "{38132679-A7AB-4B75-B2AE-517810ECBEF4}"
+	ProjectSection(SolutionItems) = preProject
+		项目文档\img.png = 项目文档\img.png
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

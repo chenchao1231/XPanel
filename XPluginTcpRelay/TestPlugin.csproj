@@ -1,11 +1,13 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
     <UseWindowsForms>true</UseWindowsForms>
     <Nullable>enable</Nullable>
-    <AssemblyName>XPluginTcpRelay</AssemblyName>
+    <AssemblyName>TestPlugin</AssemblyName>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <EnableDefaultCompileItems>true</EnableDefaultCompileItems>
   </PropertyGroup>
 
   <ItemGroup>
@@ -16,10 +18,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\XPluginInterface\XPluginInterface.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Content Include="TestPlugin.csproj" />
   </ItemGroup>
 
 </Project>

@@ -102,14 +102,14 @@ namespace XPluginTcpRelay.Models
     public enum ConnectionType
     {
         /// <summary>
-        /// A方连接（数据源）
+        /// 到数据源的客户端连接（本系统作为Client连接A方）
         /// </summary>
-        ASource,
+        DataSourceClient,
 
         /// <summary>
-        /// C方连接（目标）
+        /// 来自消费端的服务端连接（本系统作为Server接受C方连接）
         /// </summary>
-        CTarget
+        ConsumerServer
     }
 
     /// <summary>

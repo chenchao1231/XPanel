@@ -4,7 +4,8 @@ using Newtonsoft.Json;
 namespace XPluginTcpRelay.Models
 {
     /// <summary>
-    /// 路由规则模型
+    /// TCP数据中转平台路由规则模型
+    /// 架构：数据源A(TCP Server) ← 本系统(Client/Server) → 消费端C(TCP Client)
     /// </summary>
     public class RouteRule
     {
@@ -19,24 +20,24 @@ namespace XPluginTcpRelay.Models
         public string Name { get; set; } = string.Empty;
 
         /// <summary>
-        /// A方（数据源）IP地址
+        /// 数据源A方的IP地址（本系统作为Client主动连接的目标）
         /// </summary>
-        public string ASourceIp { get; set; } = "192.168.1.100";
+        public string DataSourceIp { get; set; } = "192.168.1.100";
 
         /// <summary>
-        /// A方（数据源）端口
+        /// 数据源A方的端口（本系统作为Client主动连接的目标）
         /// </summary>
-        public int ASourcePort { get; set; } = 8080;
+        public int DataSourcePort { get; set; } = 8080;
 
         /// <summary>
-        /// C方（目标）IP地址
+        /// 本系统提供给消费端C方的监听端口（本系统作为Server）
         /// </summary>
-        public string CTargetIp { get; set; } = "10.0.0.50";
+        public int LocalServerPort { get; set; } = 9999;
 
         /// <summary>
-        /// C方（目标）端口
+        /// 数据类型（realtime/unrealtime）
         /// </summary>
-        public int CTargetPort { get; set; } = 8080;
+        public string DataType { get; set; } = "realtime";
 
         /// <summary>
         /// 是否启用此规则
@@ -49,9 +50,24 @@ namespace XPluginTcpRelay.Models
         public string Description { get; set; } = string.Empty;
 
         /// <summary>
+        /// 最大消费端连接数
+        /// </summary>
+        public int MaxConsumerConnections { get; set; } = 100;
+
+        /// <summary>
+        /// 是否启用缓冲队列（用于非实时数据）
+        /// </summary>
+        public bool EnableBuffering { get; set; } = false;
+
+        /// <summary>
         /// 创建时间
         /// </summary>
         public DateTime CreatedTime { get; set; } = DateTime.Now;
+
+        /// <summary>
+        /// 报文传输大小（字节）
+        /// </summary>
+        public int PacketSize { get; set; } = 4096;
 
         /// <summary>
         /// 最后修改时间
@@ -71,14 +87,26 @@ namespace XPluginTcpRelay.Models
         public long ForwardedBytes { get; set; } = 0;
 
         /// <summary>
-        /// 获取A方端点字符串
+        /// 当前活跃的消费端连接数
         /// </summary>
-        public string AEndpoint => $"{ASourceIp}:{ASourcePort}";
+        [JsonIgnore]
+        public int ActiveConsumerConnections { get; set; } = 0;
 
         /// <summary>
-        /// 获取C方端点字符串
+        /// 数据源连接状态
         /// </summary>
-        public string CEndpoint => $"{CTargetIp}:{CTargetPort}";
+        [JsonIgnore]
+        public bool IsDataSourceConnected { get; set; } = false;
+
+        /// <summary>
+        /// 获取数据源端点字符串
+        /// </summary>
+        public string DataSourceEndpoint => $"{DataSourceIp}:{DataSourcePort}";
+
+        /// <summary>
+        /// 获取本地服务端点字符串
+        /// </summary>
+        public string LocalServerEndpoint => $"0.0.0.0:{LocalServerPort}";
 
         /// <summary>
         /// 验证规则配置是否有效
@@ -86,15 +114,15 @@ namespace XPluginTcpRelay.Models
         public bool IsValid()
         {
             return !string.IsNullOrEmpty(Name) &&
-                   !string.IsNullOrEmpty(ASourceIp) &&
-                   !string.IsNullOrEmpty(CTargetIp) &&
-                   ASourcePort > 0 && ASourcePort <= 65535 &&
-                   CTargetPort > 0 && CTargetPort <= 65535;
+                   !string.IsNullOrEmpty(DataSourceIp) &&
+                   DataSourcePort > 0 && DataSourcePort <= 65535 &&
+                   LocalServerPort > 0 && LocalServerPort <= 65535 &&
+                   MaxConsumerConnections > 0;
         }
 
         public override string ToString()
         {
-            return $"{Name}: {AEndpoint} → {CEndpoint}";
+            return $"{Name}: {DataSourceEndpoint} ← TDP → :{LocalServerPort} ({DataType})";
         }
     }
 }
