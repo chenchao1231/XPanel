@@ -33,6 +33,12 @@
         public static void Info(string message) => Write("INFO", message);
 
         /// <summary>
+        /// Warn日誌
+        /// </summary>
+        /// <param name="message">The message<see cref="string"/></param>
+        public static void Warn(string message) => Write("WARN", message);
+
+        /// <summary>
         /// Error日誌
         /// </summary>
         /// <param name="message">The message<see cref="string"/></param>

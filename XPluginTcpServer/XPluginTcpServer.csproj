@@ -6,6 +6,7 @@
     <Nullable>enable</Nullable>
     <AssemblyName>XPluginTcpServer</AssemblyName>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <SupportedOSPlatformVersion>6.1</SupportedOSPlatformVersion>
   </PropertyGroup>
 
   <ItemGroup>

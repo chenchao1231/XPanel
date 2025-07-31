@@ -17,6 +17,9 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "项目文档", "项目文�
 	ProjectSection(SolutionItems) = preProject
 		项目文档\XPanel软件功能书.md = 项目文档\XPanel软件功能书.md
 		项目文档\项目架构总结.md = 项目文档\项目架构总结.md
+		项目文档\XPanel插件开发规范.md = 项目文档\XPanel插件开发规范.md
+		项目文档\插件开发模板.md = 项目文档\插件开发模板.md
+		项目文档\插件重构总结.md = 项目文档\插件重构总结.md
 	EndProjectSection
 EndProject
 Global

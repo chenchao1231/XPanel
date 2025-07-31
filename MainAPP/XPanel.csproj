@@ -9,6 +9,7 @@
     <AssemblyName>XPanel</AssemblyName>
     <RootNamespace>XPanel</RootNamespace>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <SupportedOSPlatformVersion>6.1</SupportedOSPlatformVersion>
   </PropertyGroup>
 
   <ItemGroup>

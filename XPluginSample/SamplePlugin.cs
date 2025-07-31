@@ -2,94 +2,103 @@
 using System.Drawing;
 using System.Windows.Forms;
 using XPlugin;
+using XPluginSample.UI;
 
 namespace XPluginSample
 {
     /// <summary>
-    /// 示例插件
+    /// 示例插件 - 展示标准插件开发规范
     /// </summary>
     public class SamplePlugin : IXPanelInterface
     {
+        private static SampleMainPanel? _currentPanel;
+
         public string Name => "示例插件";
 
         public UserControl CreatePanel()
         {
-            return new SamplePanel();
-        }
-    }
-
-    /// <summary>
-    /// 示例面板
-    /// </summary>
-    public class SamplePanel : UserControl
-    {
-        public SamplePanel()
-        {
-            InitializeComponent();
-        }
-
-        private void InitializeComponent()
-        {
-            SuspendLayout();
-
-            // 设置面板属性
-            Size = new Size(600, 400);
-            BackColor = Color.LightCyan;
-
-            // 创建标题
-            var titleLabel = new Label
+            try
             {
-                Text = "这是一个示例插件面板",
-                Font = new Font("Microsoft YaHei", 14F, FontStyle.Bold),
+                // 如果已有面板实例，先清理
+                if (_currentPanel != null)
+                {
+                    _currentPanel.Dispose();
+                    _currentPanel = null;
+                }
+
+                _currentPanel = new SampleMainPanel();
+                return _currentPanel;
+            }
+            catch (Exception ex)
+            {
+                // 如果创建面板失败，返回错误信息面板
+                return CreateErrorPanel(ex);
+            }
+        }
+
+        /// <summary>
+        /// 创建错误信息面板
+        /// </summary>
+        private static UserControl CreateErrorPanel(Exception ex)
+        {
+            var errorPanel = new UserControl
+            {
+                Size = new Size(800, 600),
+                BackColor = Color.LightPink
+            };
+
+            var errorLabel = new Label
+            {
+                Text = $"示例插件加载失败：\n{ex.Message}\n\n堆栈跟踪：\n{ex.StackTrace}",
                 Location = new Point(20, 20),
-                Size = new Size(300, 30),
-                ForeColor = Color.DarkBlue
-            };
-
-            // 创建描述
-            var descLabel = new Label
-            {
-                Text = "这个插件演示了如何创建XPanel插件：\n\n" +
-                       "1. 实现 IXPanelInterface 接口\n" +
-                       "2. 提供插件名称\n" +
-                       "3. 创建用户控件面板\n" +
-                       "4. 编译为 XPlugin*.dll 格式\n" +
-                       "5. 通过插件管理器上传安装",
-                Location = new Point(20, 60),
-                Size = new Size(550, 150),
+                Size = new Size(750, 500),
                 Font = new Font("Microsoft YaHei", 10F),
-                ForeColor = Color.DarkGreen
+                ForeColor = Color.Red,
+                AutoSize = false
             };
 
-            // 创建按钮
-            var testButton = new Button
-            {
-                Text = "测试按钮",
-                Location = new Point(20, 230),
-                Size = new Size(100, 30),
-                BackColor = Color.LightBlue,
-                UseVisualStyleBackColor = false
-            };
-            testButton.Click += TestButton_Click;
-
-            // 创建文本框
-            var textBox = new TextBox
-            {
-                Location = new Point(140, 230),
-                Size = new Size(200, 30),
-                Text = "这是一个文本框"
-            };
-
-            // 添加控件
-            Controls.AddRange(new Control[] { titleLabel, descLabel, testButton, textBox });
-
-            ResumeLayout(false);
+            errorPanel.Controls.Add(errorLabel);
+            return errorPanel;
         }
 
-        private void TestButton_Click(object? sender, EventArgs e)
+        /// <summary>
+        /// 清理资源（当插件被卸载时调用）
+        /// </summary>
+        public static void Cleanup()
         {
-            MessageBox.Show("示例插件按钮被点击了！", "插件消息", 
-                MessageBoxButtons.OK, MessageBoxIcon.Information);
+            try
+            {
+                if (_currentPanel != null)
+                {
+                    System.Diagnostics.Debug.WriteLine("开始清理示例插件静态资源...");
+                    _currentPanel.Dispose();
+                    _currentPanel = null;
+                    System.Diagnostics.Debug.WriteLine("示例插件静态资源清理完成");
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"清理示例插件资源失败: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 当面板被外部释放时调用此方法清理静态引用
+        /// </summary>
+        internal static void OnPanelDisposed(SampleMainPanel panel)
+        {
+            try
+            {
+                if (_currentPanel == panel)
+                {
+                    System.Diagnostics.Debug.WriteLine("示例插件面板被外部释放，清理静态引用");
+                    _currentPanel = null;
+                }
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"清理示例插件面板静态引用失败: {ex.Message}");
+            }
         }
     }
 }

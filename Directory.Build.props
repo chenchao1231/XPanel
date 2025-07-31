@@ -2,5 +2,9 @@
   <PropertyGroup>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <GenerateTargetFrameworkAttribute>false</GenerateTargetFrameworkAttribute>
+    <!-- 指定支持的最低Windows版本，消除CA1416平台兼容性警告 -->
+    <SupportedOSPlatformVersion>6.1</SupportedOSPlatformVersion>
+    <!-- 抑制CA1416平台兼容性警告，因为我们的应用专门为Windows平台开发 -->
+    <NoWarn>$(NoWarn);CA1416</NoWarn>
   </PropertyGroup>
 </Project>

@@ -6,6 +6,7 @@
     <Nullable>enable</Nullable>
     <AssemblyName>XPluginTcpRelay</AssemblyName>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <SupportedOSPlatformVersion>6.1</SupportedOSPlatformVersion>
   </PropertyGroup>
 
   <ItemGroup>
