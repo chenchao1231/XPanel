@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Net;
+using XPlugin.Network;
 
 namespace XPluginTcpRelay.Models
 {
     /// <summary>
-    /// 连接信息模型
+    /// 连接信息模型 - 实现IConnectionInfo接口
     /// </summary>
-    public class ConnectionInfo
+    public class ConnectionInfo : IConnectionInfo
     {
         /// <summary>
         /// 连接ID
@@ -34,6 +35,19 @@ namespace XPluginTcpRelay.Models
         public ConnectionStatus Status { get; set; } = ConnectionStatus.Disconnected;
 
         /// <summary>
+        /// 连接状态（IConnectionInfo接口要求）
+        /// </summary>
+        public ConnectionState State => Status switch
+        {
+            ConnectionStatus.Disconnected => ConnectionState.Disconnected,
+            ConnectionStatus.Connecting => ConnectionState.Connecting,
+            ConnectionStatus.Connected => ConnectionState.Connected,
+            ConnectionStatus.Reconnecting => ConnectionState.Connecting,
+            ConnectionStatus.Error => ConnectionState.Error,
+            _ => ConnectionState.Disconnected
+        };
+
+        /// <summary>
         /// 连接建立时间
         /// </summary>
         public DateTime ConnectedTime { get; set; }
@@ -44,6 +58,11 @@ namespace XPluginTcpRelay.Models
         public DateTime LastActivityTime { get; set; } = DateTime.Now;
 
         /// <summary>
+        /// 最后活动时间（IConnectionInfo接口要求）
+        /// </summary>
+        public DateTime LastActiveTime => LastActivityTime;
+
+        /// <summary>
         /// 接收的字节数
         /// </summary>
         public long ReceivedBytes { get; set; } = 0;
@@ -52,6 +71,16 @@ namespace XPluginTcpRelay.Models
         /// 发送的字节数
         /// </summary>
         public long SentBytes { get; set; } = 0;
+
+        /// <summary>
+        /// 接收字节数（IConnectionInfo接口要求）
+        /// </summary>
+        public long BytesReceived => ReceivedBytes;
+
+        /// <summary>
+        /// 发送字节数（IConnectionInfo接口要求）
+        /// </summary>
+        public long BytesSent => SentBytes;
 
         /// <summary>
         /// 接收的数据包数

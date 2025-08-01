@@ -11,7 +11,7 @@ namespace XPluginTcpRelay
     /// </summary>
     public class TcpRelayPlugin : IXPanelInterface
     {
-        private static RelayControlPanel? _currentPanel;
+        private static RelayControlPanel? _currentPanel; 
 
         /// <summary>
         /// 插件名称
@@ -32,7 +32,7 @@ namespace XPluginTcpRelay
                     _currentPanel = null;
                 }
 
-                _currentPanel = new RelayControlPanel();
+                _currentPanel = new RelayControlPanel(null); // 使用默认服务工厂
                 return _currentPanel;
             }
             catch (Exception ex)
@@ -97,7 +97,7 @@ namespace XPluginTcpRelay
             {
                 try
                 {
-                    var newPanel = new RelayControlPanel();
+                    var newPanel = new RelayControlPanel(null); // 使用默认服务工厂
                     errorPanel.Parent?.Controls.Remove(errorPanel);
                     errorPanel.Parent?.Controls.Add(newPanel);
                     newPanel.Dock = DockStyle.Fill;

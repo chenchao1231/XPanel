@@ -1,0 +1,39 @@
+{
+  "SystemName": "TCP数据转发系统",
+  "ListenPort": 9999,
+  "ListenIp": "0.0.0.0",
+  "MaxConnections": 200,
+  "HeartbeatInterval": 60,
+  "ConnectionTimeout": 30,
+  "ReconnectInterval": 5,
+  "MaxReconnectAttempts": 5,
+  "BufferSize": 4096,
+  "EnableLogging": true,
+  "EnableDataAudit": true,
+  "LogLevel": 1,
+  "EnablePerformanceMonitoring": true,
+  "StatisticsRefreshInterval": 5,
+  "RouteRules": [
+    {
+      "Id": "24fb2f7c-ebaf-4a77-8a2e-8200b680b97a",
+      "Name": "规则_08011745",
+      "DataSourceIp": "127.0.0.1",
+      "DataSourcePort": 18080,
+      "LocalServerPort": 10000,
+      "DataType": "0.0.0.0",
+      "IsEnabled": true,
+      "Description": "",
+      "MaxConsumerConnections": 100,
+      "EnableBuffering": false,
+      "CreatedTime": "2025-08-01T17:46:09.3837655+08:00",
+      "PacketSize": 4096,
+      "LastModified": "2025-08-01T17:46:09.3840321+08:00",
+      "DataSourceEndpoint": "127.0.0.1:18080",
+      "LocalServerEndpoint": "0.0.0.0:10000"
+    }
+  ],
+  "CreatedTime": "2025-08-01T17:45:31.0098704+08:00",
+  "LastModified": "2025-08-01T17:46:09.4008372+08:00",
+  "Version": "1.0.0",
+  "Description": "TCP数据中继系统默认配置"
+}

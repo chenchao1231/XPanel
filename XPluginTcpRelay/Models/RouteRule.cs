@@ -1,13 +1,17 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Net;
 using Newtonsoft.Json;
+using XPlugin.Configuration;
+using XPlugin.Network;
 
 namespace XPluginTcpRelay.Models
 {
     /// <summary>
-    /// TCP数据中转平台路由规则模型
+    /// TCP数据中转平台路由规则模型 - 实现标准接口
     /// 架构：数据源A(TCP Server) ← 本系统(Client/Server) → 消费端C(TCP Client)
     /// </summary>
-    public class RouteRule
+    public class RouteRule : IRelayRule, IValidatableConfiguration, ICloneableConfiguration<RouteRule>
     {
         /// <summary>
         /// 规则ID
@@ -108,17 +112,110 @@ namespace XPluginTcpRelay.Models
         /// </summary>
         public string LocalServerEndpoint => $"0.0.0.0:{LocalServerPort}";
 
+        #region IRelayRule 接口实现
+
+        /// <summary>
+        /// 源端点（数据源A方）
+        /// </summary>
+        [JsonIgnore]
+        public IPEndPoint SourceEndPoint => new IPEndPoint(IPAddress.Parse(DataSourceIp), DataSourcePort);
+
+        /// <summary>
+        /// 目标端点（本地服务端口，C方连接的目标）
+        /// </summary>
+        [JsonIgnore]
+        public IPEndPoint TargetEndPoint => new IPEndPoint(IPAddress.Any, LocalServerPort);
+
+        #endregion
+
+        #region IValidatableConfiguration 接口实现
+
         /// <summary>
         /// 验证规则配置是否有效
         /// </summary>
         public bool IsValid()
         {
-            return !string.IsNullOrEmpty(Name) &&
-                   !string.IsNullOrEmpty(DataSourceIp) &&
-                   DataSourcePort > 0 && DataSourcePort <= 65535 &&
-                   LocalServerPort > 0 && LocalServerPort <= 65535 &&
-                   MaxConsumerConnections > 0;
+            var result = Validate();
+            return result.IsValid;
         }
+
+        /// <summary>
+        /// 验证配置是否有效
+        /// </summary>
+        /// <returns>验证结果</returns>
+        public ConfigurationValidationResult Validate()
+        {
+            var errors = new List<string>();
+            var warnings = new List<string>();
+
+            // 验证名称
+            if (string.IsNullOrWhiteSpace(Name))
+                errors.Add("规则名称不能为空");
+
+            // 验证数据源IP和端口
+            if (string.IsNullOrWhiteSpace(DataSourceIp))
+                errors.Add("数据源IP地址不能为空");
+            else if (!IPAddress.TryParse(DataSourceIp, out _))
+                errors.Add("数据源IP地址格式无效");
+
+            if (DataSourcePort <= 0 || DataSourcePort > 65535)
+                errors.Add("数据源端口号必须在1-65535范围内");
+
+            // 验证本地服务端口
+            if (LocalServerPort <= 0 || LocalServerPort > 65535)
+                errors.Add("本地服务端口号必须在1-65535范围内");
+
+            // 验证最大连接数
+            if (MaxConsumerConnections <= 0)
+                errors.Add("最大消费端连接数必须大于0");
+
+            // 验证数据类型
+            if (!string.IsNullOrWhiteSpace(DataType) &&
+                DataType != "realtime" && DataType != "unrealtime")
+                warnings.Add("数据类型建议使用 'realtime' 或 'unrealtime'");
+
+            // 验证报文大小
+            if (PacketSize <= 0 || PacketSize > 1024 * 1024) // 最大1MB
+                warnings.Add("报文传输大小建议在1-1048576字节范围内");
+
+            // 警告检查
+            if (string.IsNullOrWhiteSpace(Description))
+                warnings.Add("建议添加规则描述");
+
+            return errors.Count > 0
+                ? ConfigurationValidationResult.Failure(errors, warnings)
+                : ConfigurationValidationResult.Success(warnings);
+        }
+
+        #endregion
+
+        #region ICloneableConfiguration 接口实现
+
+        /// <summary>
+        /// 克隆规则
+        /// </summary>
+        /// <returns>克隆的规则</returns>
+        public RouteRule Clone()
+        {
+            return new RouteRule
+            {
+                Id = this.Id,
+                Name = this.Name,
+                DataSourceIp = this.DataSourceIp,
+                DataSourcePort = this.DataSourcePort,
+                LocalServerPort = this.LocalServerPort,
+                DataType = this.DataType,
+                IsEnabled = this.IsEnabled,
+                Description = this.Description,
+                MaxConsumerConnections = this.MaxConsumerConnections,
+                EnableBuffering = this.EnableBuffering,
+                PacketSize = this.PacketSize,
+                CreatedTime = this.CreatedTime,
+                LastModified = DateTime.Now
+            };
+        }
+
+        #endregion
 
         public override string ToString()
         {

@@ -1,0 +1,27 @@
+{
+  "version": 2,
+  "dgSpecHash": "49yFRnI+d7c=",
+  "success": false,
+  "projectFilePath": "D:\\windows11\\installed_files\\dev_tools\\JetBrains\\codespace\\Rider\\WinFormsApp2\\TestRelayArchitecture\\TestRelayArchitecture.csproj",
+  "expectedPackageFiles": [],
+  "logs": [
+    {
+      "code": "NU1201",
+      "level": "Error",
+      "message": "项目 XPluginInterface 与 net8.0 (.NETCoreApp,Version=v8.0) 不兼容。 项目 XPluginInterface 支持: net8.0-windows7.0 (.NETCoreApp,Version=v8.0)",
+      "libraryId": "XPluginInterface",
+      "targetGraphs": [
+        "net8.0"
+      ]
+    },
+    {
+      "code": "NU1201",
+      "level": "Error",
+      "message": "项目 XPluginTcpRelay 与 net8.0 (.NETCoreApp,Version=v8.0) 不兼容。 项目 XPluginTcpRelay 支持: net8.0-windows7.0 (.NETCoreApp,Version=v8.0)",
+      "libraryId": "XPluginTcpRelay",
+      "targetGraphs": [
+        "net8.0"
+      ]
+    }
+  ]
+}

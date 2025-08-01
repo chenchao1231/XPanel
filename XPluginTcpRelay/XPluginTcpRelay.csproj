@@ -13,6 +13,7 @@
     <PackageReference Include="TouchSocket" Version="3.1.14" />
     <PackageReference Include="TouchSocket.Core" Version="3.1.14" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="System.Text.Json" Version="8.0.5" />
   </ItemGroup>
 
   <ItemGroup>
@@ -22,5 +23,24 @@
   <ItemGroup>
     <Content Include="TestPlugin.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="插件文档\" />
+  </ItemGroup>
+
+  <!-- 编译后自动复制插件到MainAPP -->
+  <Target Name="CopyPluginToMainApp" AfterTargets="Build">
+    <Message Text="开始复制插件到MainAPP..." Importance="high" />
+
+    <!-- 使用PowerShell脚本复制 -->
+    <Exec Command="powershell -ExecutionPolicy Bypass -File &quot;$(ProjectDir)Scripts\CopyToMainApp.ps1&quot; -Configuration $(Configuration) -Verbose"
+          ContinueOnError="true"
+          IgnoreExitCode="false" />
+
+    <!-- 备用：如果PowerShell失败，使用批处理脚本 -->
+    <Exec Command="&quot;$(ProjectDir)Scripts\CopyToMainApp.bat&quot;"
+          ContinueOnError="true"
+          Condition="'$(MSBuildLastTaskResult)' == 'false'" />
+  </Target>
 
 </Project>
