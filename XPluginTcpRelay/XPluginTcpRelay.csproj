@@ -20,9 +20,7 @@
     <ProjectReference Include="..\XPluginInterface\XPluginInterface.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Content Include="TestPlugin.csproj" />
-  </ItemGroup>
+
 
   <ItemGroup>
     <Folder Include="插件文档\" />
