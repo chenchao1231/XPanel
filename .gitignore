@@ -11,3 +11,13 @@
 /XPluginTcpServer/obj/
 /XPluginTcpRelay/bin/
 /XPluginTcpRelay/obj/
+/tcp_relay_audit.log
+/TestRelayArchitecture/obj/TestRelayArchitecture.csproj.nuget.g.targets
+/TestRelayArchitecture/obj/TestRelayArchitecture.csproj.nuget.g.props
+/TestRelayArchitecture/obj/TestRelayArchitecture.csproj.nuget.dgspec.json
+/TestRelay/obj/TestRelay.csproj.nuget.dgspec.json
+/TestRelay/obj/TestRelay.csproj.nuget.g.props
+/TestRelay/obj/TestRelay.csproj.nuget.g.targets
+/TestRelay/bin/
+/TestRelay/obj/
+/TestRelayArchitecture/obj/
