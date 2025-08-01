@@ -258,8 +258,8 @@ namespace XPluginTcpRelay.UI
             _connectionsListView.Columns.Add("远程端点", 120);
             _connectionsListView.Columns.Add("状态", 60);
             _connectionsListView.Columns.Add("连接时间", 80);
-            _connectionsListView.Columns.Add("接收字节", 80);
-            _connectionsListView.Columns.Add("发送字节", 80);
+            _connectionsListView.Columns.Add("从数据源接收", 90);  // 修正：从数据源接收的字节数
+            _connectionsListView.Columns.Add("发送到数据源", 90);  // 修正：发送到数据源的字节数
             _connectionsListView.Columns.Add("最后活动", 120);
 
             // 实时日志
@@ -563,7 +563,7 @@ namespace XPluginTcpRelay.UI
             }
         }
 
-        private void DeleteRuleButton_Click(object? sender, EventArgs e)
+        private async void DeleteRuleButton_Click(object? sender, EventArgs e)
         {
             if (_routeRulesListView.SelectedItems.Count == 0) return;
 
@@ -578,29 +578,42 @@ namespace XPluginTcpRelay.UI
 
             if (result == DialogResult.Yes)
             {
-                var config = _configService.Configuration;
-                if (config.RemoveRule(ruleId))
+                try
                 {
-                    _ = Task.Run(async () =>
+                    AppendLog($"正在删除规则: {ruleName}");
+
+                    // 1. 从中继服务中删除规则（会先停止运行再删除）
+                    var relayService = _relayService as TcpRelayService;
+                    if (relayService != null)
                     {
-                        try
+                        await relayService.DeleteRelayRuleAsync(ruleId);
+                    }
+
+                    // 2. 从配置中删除规则
+                    var config = _configService.Configuration;
+                    if (config.RemoveRule(ruleId))
+                    {
+                        await _configService.SaveAsync(config);
+                        LoadRouteRules();
+
+                        // 如果删除的是当前选中的规则，清空连接列表
+                        if (_selectedRuleId == ruleId)
                         {
-                            await _configService.SaveAsync(config);
-                            Invoke(new Action(() =>
-                            {
-                                LoadRouteRules();
-                                AppendLog($"删除规则成功: {ruleName}");
-                            }));
+                            _connectionsListView.Items.Clear();
+                            _statisticsLabel.Text = "连接数: 0 | 转发量: 0 字节";
+                            _selectedRuleId = null;
                         }
-                        catch (Exception ex)
-                        {
-                            Invoke(new Action(() => AppendLog($"保存配置失败: {ex.Message}")));
-                        }
-                    });
+
+                        AppendLog($"删除规则成功: {ruleName}");
+                    }
+                    else
+                    {
+                        AppendLog($"删除规则失败: 规则不存在");
+                    }
                 }
-                else
+                catch (Exception ex)
                 {
-                    AppendLog($"删除规则失败: 规则不存在");
+                    AppendLog($"删除规则异常: {ruleName} - {ex.Message}");
                 }
             }
         }

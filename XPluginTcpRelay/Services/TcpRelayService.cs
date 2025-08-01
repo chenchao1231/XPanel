@@ -189,61 +189,67 @@ namespace XPluginTcpRelay.Services
         }
 
         /// <summary>
-        /// 移除中继规则 - 修复版本：关闭对应的数据源连接
+        /// 停止中继规则运行 - 修复版本：只停止运行，不删除规则配置
         /// </summary>
         public async Task<bool> RemoveRelayRuleAsync(string ruleId)
         {
             try
             {
-                if (_relayRules.TryRemove(ruleId, out var rule))
+                LogMessage?.Invoke(this, $"开始停止规则运行: {ruleId}");
+
+                // 1. 停止相关的会话（这会关闭监听器和所有C方连接）
+                if (_activeSessions.TryRemove(ruleId, out var session))
                 {
-                    // 停止相关的会话
-                    if (_activeSessions.TryRemove(ruleId, out var session))
-                    {
-                        await session.StopAsync();
-                    }
-
-                    // 检查是否还有其他规则使用相同的数据源
-                    var dataSourceKey = "";
-                    if (rule is RouteRule routeRule)
-                    {
-                        dataSourceKey = $"{routeRule.DataSourceIp}:{routeRule.DataSourcePort}";
-
-                        // 检查是否还有其他活跃规则使用相同数据源
-                        var otherRulesUsingSameDataSource = _relayRules.Values
-                            .OfType<RouteRule>()
-                            .Where(r => r.IsEnabled &&
-                                       $"{r.DataSourceIp}:{r.DataSourcePort}" == dataSourceKey &&
-                                       _activeSessions.ContainsKey(r.Id))
-                            .Any();
-
-                        // 如果没有其他规则使用该数据源，则关闭数据源连接
-                        if (!otherRulesUsingSameDataSource &&
-                            _dataSourceConnections.TryRemove(dataSourceKey, out var dataSourceConnection))
-                        {
-                            await dataSourceConnection.StopAsync();
-                            dataSourceConnection.Dispose();
-                            LogMessage?.Invoke(this, $"已关闭数据源连接: {dataSourceKey}");
-                        }
-                    }
-
-                    LogMessage?.Invoke(this, $"移除中继规则: {rule.Name}");
-
-                    if (_auditService != null)
-                    {
-                        await _auditService.LogSystemEventAsync(SystemEventType.ConfigurationSaved,
-                            $"移除中继规则: {rule.Name}");
-                    }
-
-                    return true;
+                    await session.StopAsync();
+                    LogMessage?.Invoke(this, $"已停止会话: {ruleId}");
+                }
+                else
+                {
+                    LogMessage?.Invoke(this, $"规则未在运行: {ruleId}");
+                    return true; // 规则本来就没在运行，算作成功
                 }
 
-                return false;
+                // 2. 获取规则信息用于数据源连接管理
+                if (_relayRules.TryGetValue(ruleId, out var rule) && rule is RouteRule routeRule)
+                {
+                    var dataSourceKey = $"{routeRule.DataSourceIp}:{routeRule.DataSourcePort}";
+
+                    // 检查是否还有其他活跃规则使用相同数据源
+                    var otherActiveRulesUsingSameDataSource = _activeSessions.Keys
+                        .Where(activeRuleId => activeRuleId != ruleId)
+                        .Select(activeRuleId => _relayRules.TryGetValue(activeRuleId, out var r) ? r : null)
+                        .OfType<RouteRule>()
+                        .Where(r => $"{r.DataSourceIp}:{r.DataSourcePort}" == dataSourceKey)
+                        .Any();
+
+                    // 如果没有其他活跃规则使用该数据源，则关闭数据源连接
+                    if (!otherActiveRulesUsingSameDataSource &&
+                        _dataSourceConnections.TryRemove(dataSourceKey, out var dataSourceConnection))
+                    {
+                        await dataSourceConnection.StopAsync();
+                        dataSourceConnection.Dispose();
+                        LogMessage?.Invoke(this, $"已关闭数据源连接: {dataSourceKey}");
+                    }
+                    else if (otherActiveRulesUsingSameDataSource)
+                    {
+                        LogMessage?.Invoke(this, $"数据源连接保持活跃，其他规则仍在使用: {dataSourceKey}");
+                    }
+
+                    LogMessage?.Invoke(this, $"规则运行已停止: {rule.Name}");
+                }
+
+                if (_auditService != null)
+                {
+                    await _auditService.LogSystemEventAsync(SystemEventType.ConfigurationSaved,
+                        $"停止中继规则运行: {rule?.Name ?? ruleId}");
+                }
+
+                return true;
             }
             catch (Exception ex)
             {
-                LogMessage?.Invoke(this, $"移除中继规则失败: {ex.Message}");
-                Log.Error($"移除中继规则失败: {ex}");
+                LogMessage?.Invoke(this, $"停止中继规则失败: {ex.Message}");
+                Log.Error($"停止中继规则失败: {ex}");
                 return false;
             }
         }
@@ -254,6 +260,46 @@ namespace XPluginTcpRelay.Services
         public IEnumerable<IRelayRule> GetRelayRules()
         {
             return _relayRules.Values.ToList();
+        }
+
+        /// <summary>
+        /// 删除中继规则 - 先停止运行，再从规则列表中删除
+        /// </summary>
+        public async Task<bool> DeleteRelayRuleAsync(string ruleId)
+        {
+            try
+            {
+                LogMessage?.Invoke(this, $"开始删除规则: {ruleId}");
+
+                // 1. 先停止规则运行（如果正在运行）
+                if (_activeSessions.ContainsKey(ruleId))
+                {
+                    await RemoveRelayRuleAsync(ruleId);
+                }
+
+                // 2. 从规则列表中删除
+                if (_relayRules.TryRemove(ruleId, out var rule))
+                {
+                    LogMessage?.Invoke(this, $"已删除规则: {rule.Name}");
+
+                    if (_auditService != null)
+                    {
+                        await _auditService.LogSystemEventAsync(SystemEventType.ConfigurationSaved,
+                            $"删除中继规则: {rule.Name}");
+                    }
+
+                    return true;
+                }
+
+                LogMessage?.Invoke(this, $"规则不存在: {ruleId}");
+                return false;
+            }
+            catch (Exception ex)
+            {
+                LogMessage?.Invoke(this, $"删除中继规则失败: {ex.Message}");
+                Log.Error($"删除中继规则失败: {ex}");
+                return false;
+            }
         }
 
         /// <summary>
@@ -709,8 +755,12 @@ namespace XPluginTcpRelay.Services
         public DateTime LastActivityTime => _lastActivityTime;
         public bool IsConnected => _consumerClient?.Connected == true && _consumerStream != null;
         public System.Net.IPEndPoint? RemoteEndPoint => _consumerClient?.Client?.RemoteEndPoint as System.Net.IPEndPoint;
-        public long ReceivedBytes { get; private set; } = 0;
-        public long SentBytes { get; private set; } = 0;
+
+        // 修正字节统计定义：
+        // ReceivedBytes: 从数据源接收的字节数（A→C方向）
+        // SentBytes: 发送给数据源的字节数（C→A方向）
+        public long ReceivedBytes { get; private set; } = 0;  // 从数据源接收的字节
+        public long SentBytes { get; private set; } = 0;      // 发送给数据源的字节
 
         public event EventHandler<string>? LogMessage;
         public event EventHandler<XPlugin.Network.DataTransferEventArgs>? DataTransferred;
@@ -764,7 +814,9 @@ namespace XPluginTcpRelay.Services
                 await _consumerStream.WriteAsync(data, 0, data.Length);
                 await _consumerStream.FlushAsync();
                 _lastActivityTime = DateTime.Now;
-                SentBytes += data.Length;
+
+                // 修正：这是从数据源接收并转发给消费端的数据，应该计入ReceivedBytes
+                ReceivedBytes += data.Length;
 
                 // 记录审计日志
                 if (_auditService != null)
@@ -813,9 +865,11 @@ namespace XPluginTcpRelay.Services
                         break;
                     }
 
-                    // 更新活动时间和接收字节统计
+                    // 更新活动时间和发送字节统计
                     _lastActivityTime = DateTime.Now;
-                    ReceivedBytes += bytesRead;
+
+                    // 修正：这是从消费端接收并发送给数据源的数据，应该计入SentBytes
+                    SentBytes += bytesRead;
 
                     // 转发数据到数据源（如果数据源已连接）
                     if (_dataSourceConnection.IsConnected)
@@ -1028,6 +1082,8 @@ namespace XPluginTcpRelay.Services
                 return false;
             }
         }
+
+
      
         /// <summary>
         /// 解析端点字符串为IPEndPoint
@@ -1042,5 +1098,7 @@ namespace XPluginTcpRelay.Services
             var port = int.Parse(parts[1]);
             return new IPEndPoint(address, port);
         }
+
+
     }
 }
